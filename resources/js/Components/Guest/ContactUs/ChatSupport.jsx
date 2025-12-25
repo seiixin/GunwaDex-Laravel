@@ -10,6 +10,7 @@ import {
   MessageSquareText,
   BadgeHelp,
   AlertTriangle,
+  ChevronDown,
 } from "lucide-react";
 
 // ---- axios defaults (Laravel CSRF + XHR header) ----
@@ -22,8 +23,35 @@ if (typeof window !== "undefined") {
 }
 
 // helpers
-const trimLine = (v) =>
-  v == null ? v : String(v).replace(/[ \t]+/g, " ").trim();
+function cx(...classes) {
+  return classes.filter(Boolean).join(" ");
+}
+const trimLine = (v) => (v == null ? v : String(v).replace(/[ \t]+/g, " ").trim());
+
+// ✅ orange → pink tokens
+const GRADIENT_BG = "bg-gradient-to-r from-orange-400 to-pink-500";
+const GRADIENT_BG_SOFT = "bg-gradient-to-r from-orange-400/20 to-pink-500/20";
+const GRADIENT_RING =
+  "focus:ring-2 focus:ring-pink-400/50 focus:ring-orange-400/40";
+
+function GradientDot() {
+  return <span className={cx("h-2.5 w-2.5 rounded-full", GRADIENT_BG)} />;
+}
+
+function GradientIconBadge({ children, className = "" }) {
+  return (
+    <span
+      className={cx(
+        "inline-flex items-center justify-center rounded-full",
+        GRADIENT_BG,
+        "shadow-sm",
+        className
+      )}
+    >
+      <span className="text-black">{children}</span>
+    </span>
+  );
+}
 
 function InitialAvatar({ name = "User", tone = "user" }) {
   const initials = useMemo(() => {
@@ -40,22 +68,129 @@ function InitialAvatar({ name = "User", tone = "user" }) {
       : "bg-white text-black";
 
   return (
-    <div className={`flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-extrabold ${cls}`}>
+    <div
+      className={cx(
+        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-extrabold",
+        cls
+      )}
+    >
       {initials || "U"}
     </div>
   );
 }
 
+// ✅ Desktop chip (icons ok on desktop)
 function ConcernChip({ label, onClick, icon: Icon }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[12px] font-semibold text-white/85 hover:bg-white/10 active:scale-[0.98]"
+      className={cx(
+        "inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5",
+        "px-3 py-2 text-[12px] font-semibold text-white/85 hover:bg-white/10 active:scale-[0.98]",
+        "whitespace-nowrap"
+      )}
+      title={`Insert: ${label}`}
     >
-      <Icon size={14} className="text-orange-300" />
+      <GradientIconBadge className="h-6 w-6">
+        <Icon size={14} />
+      </GradientIconBadge>
       {label}
     </button>
+  );
+}
+
+// ✅ Mobile dropdown (NO ICONS)
+function MobileConcernDropdown({ options, onPick }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (!wrapRef.current) return;
+      if (!wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("touchstart", onDoc, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("touchstart", onDoc);
+    };
+  }, []);
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((s) => !s)}
+        className={cx(
+          "w-full rounded-xl border border-white/10 bg-white/5",
+          "px-3 py-2.5",
+          "flex items-center justify-between gap-3",
+          "text-left",
+          GRADIENT_RING
+        )}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <div className="min-w-0">
+          <div className="text-[13px] font-extrabold text-white/90 truncate">
+            Select template…
+          </div>
+          <div className="text-[11px] font-semibold text-white/45 truncate">
+            Insert a structured message
+          </div>
+        </div>
+
+        <span className={cx("text-white/70 transition", open && "rotate-180")}>
+          <ChevronDown size={18} />
+        </span>
+      </button>
+
+      {open && (
+        <div
+          className={cx(
+            "absolute left-0 right-0 z-30 mt-2",
+            "rounded-xl border border-white/10 bg-black/95",
+            "shadow-2xl overflow-hidden backdrop-blur"
+          )}
+          role="listbox"
+        >
+          <div className="max-h-[240px] overflow-auto p-1">
+            {options.map((t) => (
+              <button
+                key={t.label}
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  onPick(t.text);
+                }}
+                className={cx(
+                  "w-full rounded-lg px-3 py-3",
+                  "text-left",
+                  "hover:bg-white/10 active:bg-white/15",
+                  "transition"
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <GradientDot />
+                  <div className="text-[13px] font-extrabold text-white/90 truncate">
+                    {t.label}
+                  </div>
+                </div>
+                <div className="mt-0.5 text-[11px] font-semibold text-white/45 truncate">
+                  Tap to insert
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <div className="border-t border-white/10 px-3 py-2 text-[11px] text-white/50">
+            Tip: inserts below (won’t delete what you typed).
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -72,7 +207,7 @@ export default function ChatSupport({ serverTemplateSubject = null }) {
 
   const listRef = useRef(null);
   const fileInputRef = useRef(null);
-  const seenIds = useRef(new Set()); // de-dup incoming messages (Echo/polling)
+  const seenIds = useRef(new Set());
 
   const scrollToBottom = useCallback(() => {
     requestAnimationFrame(() => {
@@ -140,7 +275,6 @@ export default function ChatSupport({ serverTemplateSubject = null }) {
 
     setSendingChat(true);
     try {
-      // create conversation if none yet
       if (!activeConv) {
         const form = new FormData();
 
@@ -165,7 +299,6 @@ export default function ChatSupport({ serverTemplateSubject = null }) {
         return;
       }
 
-      // send message to existing convo
       const form = new FormData();
       if (chatText.trim()) form.append("message", chatText.trim());
       if (attachment) form.append("attachment", attachment);
@@ -196,7 +329,7 @@ export default function ChatSupport({ serverTemplateSubject = null }) {
     }
   }
 
-  // Fallback polling
+  // polling
   useEffect(() => {
     if (!activeConv?.id) return;
     const t = setInterval(() => loadMessages(activeConv.id), 7000);
@@ -232,7 +365,6 @@ export default function ChatSupport({ serverTemplateSubject = null }) {
     };
   }, [auth?.user, activeConv?.id, addMessageUnique, scrollToBottom]);
 
-  // quick concern templates (GunwaDex / manhwa concerns)
   const concerns = useMemo(
     () => [
       {
@@ -269,27 +401,60 @@ export default function ChatSupport({ serverTemplateSubject = null }) {
     []
   );
 
-  function applyConcernTemplate(t) {
+  function applyConcernTemplate(text) {
     setChatText((prev) => {
       const cur = (prev || "").trim();
-      if (!cur) return t;
-      // append nicely
-      return `${prev}\n\n${t}`;
+      if (!cur) return text;
+      return `${prev}\n\n${text}`;
     });
     scrollToBottom();
   }
 
+  const headerRef = useRef(null);
+  const composerRef = useRef(null);
+  const [shellPx, setShellPx] = useState({ head: 0, chips: 0, composer: 0 });
+
+  useEffect(() => {
+    const measure = () => {
+      const head = headerRef.current?.getBoundingClientRect()?.height ?? 0;
+      const chips = document.getElementById("gwdx-concern-chips")?.getBoundingClientRect()?.height ?? 0;
+      const composer = composerRef.current?.getBoundingClientRect()?.height ?? 0;
+      setShellPx({ head, chips, composer });
+    };
+
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [attachment, activeConv, auth?.user]);
+
   return (
-    <div className="flex flex-col rounded-2xl border border-white/10 bg-black/50 p-0 shadow-lg backdrop-blur">
-      {/* Header */}
-      <div className="flex items-center justify-between rounded-t-2xl border-b border-white/10 bg-black/40 px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white">
+    <div
+      className={cx(
+        "rounded-2xl border border-white/10 bg-black/50 shadow-lg backdrop-blur",
+        "overflow-hidden"
+      )}
+      style={{ minHeight: "min(720px, 100dvh)" }}
+    >
+      {/* Sticky Header */}
+      <div
+        ref={headerRef}
+        className={cx(
+          "sticky top-0 z-20",
+          "flex items-center justify-between",
+          "border-b border-white/10 bg-black/70 backdrop-blur",
+          "px-4 py-3"
+        )}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <GradientIconBadge className="h-9 w-9 shrink-0">
             <MessageSquareText size={18} />
-          </div>
-          <div>
-            <div className="text-[15px] font-extrabold tracking-wide">GunwaDex Support</div>
-            <div className="text-[12px] font-semibold text-white/60">
+          </GradientIconBadge>
+
+          <div className="min-w-0">
+            <div className="truncate text-[15px] font-extrabold tracking-wide">
+              GunwaDex Support
+            </div>
+            <div className="truncate text-[12px] font-semibold text-white/60">
               {auth?.user ? "Typically replies within a few hours" : "Log in to start chatting"}
             </div>
           </div>
@@ -298,219 +463,270 @@ export default function ChatSupport({ serverTemplateSubject = null }) {
         {auth?.user && (
           <button
             onClick={loadMyConversations}
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[12px] font-semibold text-white/80 hover:bg-white/10 active:scale-[0.98]"
+            className={cx(
+              "inline-flex items-center gap-2 rounded-full border border-white/10",
+              GRADIENT_BG_SOFT,
+              "px-3 py-2 text-[12px] font-semibold text-white/85",
+              "hover:brightness-110 active:scale-[0.98] transition"
+            )}
             title="Refresh"
             type="button"
           >
             <RefreshCcw size={14} />
-            Refresh
+            <span className="hidden sm:inline">Refresh</span>
           </button>
         )}
       </div>
 
-      {/* Concern chips */}
-      <div className="flex flex-wrap gap-2 border-b border-white/10 bg-black/30 px-4 py-3">
-        {concerns.map((c) => (
-          <ConcernChip
-            key={c.label}
-            label={c.label}
-            icon={c.icon}
-            onClick={() => applyConcernTemplate(c.text)}
+      {/* Concerns */}
+      <div
+        id="gwdx-concern-chips"
+        className={cx("border-b border-white/10 bg-black/40", "px-4 py-3")}
+      >
+        <div className="mb-2 text-[12px] font-semibold text-white/60">
+          Quick templates
+        </div>
+
+        {/* ✅ MOBILE: dropdown (no icons) */}
+        <div className="sm:hidden">
+          <MobileConcernDropdown
+            options={concerns}
+            onPick={(text) => applyConcernTemplate(text)}
           />
-        ))}
+        </div>
+
+        {/* ✅ DESKTOP: chips */}
+        <div className="hidden sm:block">
+          <div className="flex flex-wrap gap-2">
+            {concerns.map((c) => (
+              <ConcernChip
+                key={c.label}
+                label={c.label}
+                icon={c.icon}
+                onClick={() => applyConcernTemplate(c.text)}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Messages Area */}
+      {/* Body: Messages + Composer */}
       <div
-        ref={listRef}
-        className="min-h-[360px] max-h-[360px] flex-1 space-y-3 overflow-y-auto px-4 py-4"
+        className="flex flex-col"
+        style={{
+          height: auth?.user
+            ? `calc(100dvh - ${Math.ceil(shellPx.head + shellPx.chips)}px)`
+            : "auto",
+          minHeight: auth?.user ? "420px" : "auto",
+        }}
       >
-        {!auth?.user ? (
-          <div className="py-10 text-center text-white/70">
-            You must{" "}
-            <a
-              href="/login"
-              className="font-bold text-white underline decoration-orange-300 underline-offset-2"
-            >
-              log in
-            </a>{" "}
-            to use chat support.
-          </div>
-        ) : loadingThread ? (
-          <div className="flex items-center justify-center py-10 text-white/70">
-            <Loader2 className="mr-2 animate-spin" size={18} /> Loading thread…
-          </div>
-        ) : messagesList.length ? (
-          messagesList.map((m) => {
-            const mine = m.sender_type === "user";
-            const atUrl = getAttachmentUrl(m);
-            const isImg = atUrl
-              ? /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(atUrl.split("?")[0])
-              : false;
+        {/* Messages */}
+        <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+          {!auth?.user ? (
+            <div className="py-10 text-center text-white/70">
+              You must{" "}
+              <a
+                href="/login"
+                className="font-bold text-white underline decoration-orange-300 underline-offset-2"
+              >
+                log in
+              </a>{" "}
+              to use chat support.
+            </div>
+          ) : loadingThread ? (
+            <div className="flex items-center justify-center py-10 text-white/70">
+              <Loader2 className="mr-2 animate-spin" size={18} /> Loading thread…
+            </div>
+          ) : messagesList.length ? (
+            messagesList.map((m) => {
+              const mine = m.sender_type === "user";
+              const atUrl = getAttachmentUrl(m);
+              const isImg = atUrl
+                ? /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(atUrl.split("?")[0])
+                : false;
 
-            return (
-              <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                {!mine && (
-                  <div className="mr-2 self-end">
-                    <InitialAvatar name="GunwaDex" tone="support" />
+              return (
+                <div key={m.id} className={cx("flex", mine ? "justify-end" : "justify-start")}>
+                  {!mine && (
+                    <div className="mr-2 self-end">
+                      <InitialAvatar name="GunwaDex" tone="support" />
+                    </div>
+                  )}
+
+                  <div className="max-w-[88%] sm:max-w-[78%]">
+                    <div
+                      className={cx(
+                        "rounded-2xl px-4 py-3 text-[14px] leading-relaxed shadow",
+                        mine
+                          ? "rounded-br-md bg-white text-black"
+                          : "rounded-bl-md bg-white/10 text-white border border-white/10"
+                      )}
+                    >
+                      {atUrl && (
+                        <div className="mb-2">
+                          {isImg ? (
+                            <a href={atUrl} target="_blank" rel="noreferrer">
+                              <img
+                                src={atUrl}
+                                alt="attachment"
+                                className={cx(
+                                  "w-full max-w-[320px] sm:max-w-[360px]",
+                                  "max-h-72 object-contain",
+                                  "rounded-xl border border-white/10"
+                                )}
+                              />
+                            </a>
+                          ) : (
+                            <a
+                              href={atUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={mine ? "underline text-black/80" : "underline text-white/80"}
+                            >
+                              Download attachment
+                            </a>
+                          )}
+                        </div>
+                      )}
+
+                      {m.message && (
+                        <div className="whitespace-pre-wrap break-words">{m.message}</div>
+                      )}
+                    </div>
+
+                    <div className={cx("mt-1 px-1 text-[11px]", mine ? "text-white/60 text-right" : "text-white/50")}>
+                      {m.full_date || m.created_at}
+                    </div>
                   </div>
-                )}
 
-                <div className="max-w-[78%]">
-                  <div
-                    className={cx(
-                      "rounded-2xl px-4 py-3 text-[14px] leading-relaxed shadow",
-                      mine
-                        ? "rounded-br-md bg-white text-black"
-                        : "rounded-bl-md bg-white/10 text-white border border-white/10"
-                    )}
-                  >
-                    {atUrl && (
-                      <div className="mb-2">
-                        {isImg ? (
-                          <a href={atUrl} target="_blank" rel="noreferrer">
-                            <img
-                              src={atUrl}
-                              alt="attachment"
-                              className="max-h-56 rounded-xl border border-white/10"
-                            />
-                          </a>
-                        ) : (
-                          <a
-                            href={atUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className={mine ? "underline text-black/80" : "underline text-white/80"}
-                          >
-                            Download attachment
-                          </a>
-                        )}
-                      </div>
-                    )}
-
-                    {m.message && <div className="whitespace-pre-wrap">{m.message}</div>}
-                  </div>
-
-                  <div className={`mt-1 px-1 text-[11px] ${mine ? "text-white/60 text-right" : "text-white/50"}`}>
-                    {m.full_date || m.created_at}
-                  </div>
+                  {mine && (
+                    <div className="ml-2 self-end">
+                      <InitialAvatar name={auth?.user?.name || "You"} tone="user" />
+                    </div>
+                  )}
                 </div>
+              );
+            })
+          ) : (
+            <div className="py-10 text-center text-white/60">
+              No messages yet. Pick a template above or start typing your issue.
+            </div>
+          )}
+        </div>
 
-                {mine && (
-                  <div className="ml-2 self-end">
-                    <InitialAvatar name={auth?.user?.name || "You"} tone="user" />
-                  </div>
+        {/* Composer */}
+        {auth?.user && (
+          <form
+            onSubmit={sendChat}
+            ref={composerRef}
+            className={cx(
+              "sticky bottom-0 z-20",
+              "border-t border-white/10 bg-black/80 backdrop-blur",
+              "p-3 sm:p-4"
+            )}
+          >
+            {!activeConv && (
+              <input
+                type="text"
+                placeholder="Subject (optional) e.g., Premium Chapter Issue"
+                value={convSubject}
+                onChange={(e) => setConvSubject(e.target.value)}
+                className={cx(
+                  "mb-3 w-full rounded-xl border border-white/10 bg-white/5",
+                  "px-4 py-3 text-[14px] font-semibold text-white placeholder-white/40 outline-none",
+                  GRADIENT_RING
                 )}
+              />
+            )}
+
+            {attachment && (
+              <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[12px] font-semibold text-white/80">
+                <div className="flex min-w-0 items-center gap-2">
+                  <Paperclip size={14} className="shrink-0" />
+                  <span className="truncate">{attachment.name}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAttachment(null);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                  className="shrink-0 text-white/60 hover:text-white"
+                >
+                  Remove
+                </button>
               </div>
-            );
-          })
-        ) : (
-          <div className="py-10 text-center text-white/60">
-            No messages yet. Tap a concern above or start typing your issue.
-          </div>
+            )}
+
+            {attachment?.name && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(attachment.name) && (
+              <div className="mb-3">
+                <img
+                  src={URL.createObjectURL(attachment)}
+                  onLoad={(e) => URL.revokeObjectURL(e.currentTarget.src)}
+                  alt="preview"
+                  className="w-full max-w-[360px] max-h-48 object-contain rounded-xl border border-white/10"
+                />
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+              <div className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <textarea
+                  value={chatText}
+                  onChange={(e) => setChatText(e.target.value)}
+                  onKeyDown={onComposerKeyDown}
+                  placeholder="Describe your concern… (Story title, chapter, and what happened)"
+                  rows={2}
+                  className="min-h-[56px] max-h-52 w-full resize-y bg-transparent text-[14px] font-medium text-white placeholder-white/40 outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx"
+                  className="hidden"
+                  onChange={(e) => setAttachment(e.target.files?.[0] ?? null)}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className={cx(
+                    "inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10",
+                    GRADIENT_BG_SOFT,
+                    "text-white hover:brightness-110 active:scale-[0.98] transition"
+                  )}
+                  title="Attach"
+                >
+                  <Paperclip size={18} />
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={sendingChat || (!chatText.trim() && !attachment)}
+                  className={cx(
+                    "inline-flex h-11 items-center justify-center gap-2 rounded-full px-5 text-[14px] font-extrabold tracking-wide",
+                    "transition active:scale-[0.98]",
+                    sendingChat || (!chatText.trim() && !attachment)
+                      ? "cursor-not-allowed bg-white/10 text-white/50"
+                      : cx(GRADIENT_BG, "text-black hover:brightness-110 shadow-sm")
+                  )}
+                >
+                  {sendingChat ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
+                  <span>{sendingChat ? "Sending…" : "Send"}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-2 flex items-center gap-2 text-[12px] text-white/45">
+              <BadgeHelp size={14} className="text-white/40" />
+              Tip: Add story title + chapter number and attach a screenshot if possible.
+            </div>
+          </form>
         )}
       </div>
-
-      {/* Composer */}
-      {auth?.user && (
-        <form onSubmit={sendChat} className="border-t border-white/10 bg-black/35 p-4">
-          {!activeConv && (
-            <input
-              type="text"
-              placeholder="Subject (optional) e.g., Premium Chapter Issue"
-              value={convSubject}
-              onChange={(e) => setConvSubject(e.target.value)}
-              className="mb-3 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-[14px] font-semibold text-white placeholder-white/40 outline-none focus:ring-2 focus:ring-orange-400/60"
-            />
-          )}
-
-          {attachment && (
-            <div className="mb-3 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[12px] font-semibold text-white/80">
-              <div className="flex items-center gap-2">
-                <Paperclip size={14} />
-                <span className="max-w-[220px] truncate">{attachment.name}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setAttachment(null);
-                  if (fileInputRef.current) fileInputRef.current.value = "";
-                }}
-                className="text-white/60 hover:text-white"
-              >
-                Remove
-              </button>
-            </div>
-          )}
-
-          {attachment?.name && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(attachment.name) && (
-            <div className="mb-3">
-              <img
-                src={URL.createObjectURL(attachment)}
-                onLoad={(e) => URL.revokeObjectURL(e.currentTarget.src)}
-                alt="preview"
-                className="max-h-44 rounded-xl border border-white/10"
-              />
-            </div>
-          )}
-
-          <div className="flex items-end gap-2">
-            <div className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-              <textarea
-                value={chatText}
-                onChange={(e) => setChatText(e.target.value)}
-                onKeyDown={onComposerKeyDown}
-                placeholder="Describe your concern… (Story title, chapter, and what happened)"
-                rows={1}
-                className="min-h-[44px] max-h-52 w-full resize-y bg-transparent text-[14px] font-medium text-white placeholder-white/40 outline-none"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx"
-                className="hidden"
-                onChange={(e) => setAttachment(e.target.files?.[0] ?? null)}
-              />
-
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10 active:scale-[0.98]"
-                title="Attach"
-              >
-                <Paperclip size={18} />
-              </button>
-
-              <button
-                type="submit"
-                disabled={sendingChat || (!chatText.trim() && !attachment)}
-                className={[
-                  "inline-flex h-11 items-center justify-center gap-2 rounded-full px-5 text-[14px] font-extrabold tracking-wide",
-                  sendingChat || (!chatText.trim() && !attachment)
-                    ? "cursor-not-allowed bg-white/10 text-white/50"
-                    : "bg-orange-400 text-black hover:bg-orange-300 active:scale-[0.98]",
-                ].join(" ")}
-              >
-                {sendingChat ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
-                <span className="hidden sm:inline">{sendingChat ? "Sending…" : "Send"}</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-2 flex items-center gap-2 text-[12px] text-white/45">
-            <BadgeHelp size={14} className="text-white/40" />
-            Tip: Add story title + chapter number and attach a screenshot if possible.
-          </div>
-        </form>
-      )}
     </div>
   );
-}
-
-// local helper since we removed earlier
-function cx(...classes) {
-  return classes.filter(Boolean).join(" ");
 }

@@ -29,7 +29,7 @@ const DEFAULT_CONTACT = {
 
 function InfoPill({ children }) {
   return (
-    <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[12px] font-semibold text-white/80">
+    <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] sm:text-[12px] font-semibold text-white/80">
       {children}
     </div>
   );
@@ -45,11 +45,11 @@ function SocialIcon({ href, label, icon: Icon }) {
       aria-disabled={disabled}
       title={label}
       className={[
-        "inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition",
+        "inline-flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition",
         disabled ? "pointer-events-none opacity-40" : "hover:bg-white/10 active:scale-[0.98]",
       ].join(" ")}
     >
-      <Icon size={20} className="text-white" />
+      <Icon size={18} className="text-white sm:w-[20px] sm:h-[20px]" />
     </a>
   );
 }
@@ -90,47 +90,48 @@ export default function ContactUs(props) {
     <PageShell active="contact">
       <Head title="Contact Us" />
 
-      {/* GunwaDex dark canvas */}
-      <div className="min-h-screen bg-[#050505] text-white">
-        <section className="mx-auto max-w-6xl px-4 py-8 md:px-6">
+      {/* Prevent any sideways scroll */}
+      <div className="w-full overflow-x-hidden text-white">
+        <section className="mx-auto w-full max-w-screen-2xl px-4 sm:px-6 lg:px-10 py-6 sm:py-10">
           {/* Header */}
           <div className="flex flex-col items-center text-center">
             <InfoPill>Support</InfoPill>
-            <h1 className="mt-3 text-[28px] font-extrabold tracking-tight md:text-[34px]">
+
+            <h1 className="mt-3 text-[26px] sm:text-[32px] md:text-[40px] font-extrabold tracking-tight">
               Contact GunwaDex
             </h1>
-            <p className="mt-2 max-w-2xl text-[14px] font-medium leading-relaxed text-white/70 md:text-[15px]">
+
+            <p className="mt-2 max-w-3xl text-[13px] sm:text-[15px] md:text-[16px] font-medium leading-relaxed text-white/70 px-1">
               For concerns and inquiries, message us anytime. For urgent help, you can also reach us via our social links.
             </p>
 
-            {/* Social icons */}
-            <div className="mt-5 flex items-center gap-3">
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
               <SocialIcon href={contact.facebook} label="Facebook" icon={Facebook} />
               <SocialIcon href={contact.discord} label="Discord" icon={MessageCircle} />
             </div>
 
-            {/* Contact quick info */}
-            <div className="mt-5 w-full max-w-xl rounded-2xl border border-white/10 bg-white/5 p-4 text-left shadow-sm backdrop-blur">
+            {/* Quick info wider */}
+            <div className="mt-6 w-full max-w-4xl rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 text-left shadow-sm backdrop-blur">
               {loadingContact ? (
                 <div className="animate-pulse text-white/50">Loading contact…</div>
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                    <div className="text-[12px] font-bold text-white/60">Phone</div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-white/10 bg-black/30 p-4 sm:p-5">
+                    <div className="text-[11px] sm:text-[12px] font-bold text-white/60">Phone</div>
                     {contact.phone ? (
                       <a
                         href={`tel:${cleanTel(contact.phone)}`}
-                        className="mt-1 inline-block text-[14px] font-extrabold text-white hover:text-white/90"
+                        className="mt-2 inline-block break-words text-[15px] sm:text-[16px] font-extrabold text-white hover:text-white/90"
                       >
                         {contact.phone}
                       </a>
                     ) : (
-                      <div className="mt-1 text-[13px] text-white/40">Not available</div>
+                      <div className="mt-2 text-[13px] text-white/40">Not available</div>
                     )}
                   </div>
 
-                  <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                    <div className="text-[12px] font-bold text-white/60">Address</div>
+                  <div className="rounded-2xl border border-white/10 bg-black/30 p-4 sm:p-5">
+                    <div className="text-[11px] sm:text-[12px] font-bold text-white/60">Address</div>
                     {contact.address ? (
                       <a
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
@@ -138,13 +139,13 @@ export default function ContactUs(props) {
                         )}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-1 inline-block text-[14px] font-extrabold text-white hover:text-white/90"
+                        className="mt-2 inline-block break-words text-[15px] sm:text-[16px] font-extrabold text-white hover:text-white/90"
                         title={contact.address}
                       >
                         {contact.address}
                       </a>
                     ) : (
-                      <div className="mt-1 text-[13px] text-white/40">Not available</div>
+                      <div className="mt-2 text-[13px] text-white/40">Not available</div>
                     )}
                   </div>
                 </div>
@@ -152,14 +153,18 @@ export default function ContactUs(props) {
             </div>
           </div>
 
-          {/* Main panels */}
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            {/* LEFT: Email Support */}
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-lg backdrop-blur">
-              <div className="mb-4">
-                <div className="text-[18px] font-extrabold tracking-tight">Email Support</div>
-                <div className="mt-1 text-[13px] font-medium text-white/60">
-                  Send a message and we’ll get back to you.
+          {/* Main panels: FULL WIDTH + more spacious layout */}
+          <div className="mt-8 grid grid-cols-1 gap-6 lg:gap-8 xl:grid-cols-3">
+            {/* Email Support takes 2/3 width on xl */}
+            <div className="xl:col-span-2 rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 lg:p-7 shadow-lg backdrop-blur">
+              <div className="mb-5 flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="text-[17px] sm:text-[20px] font-extrabold tracking-tight">
+                    Email Support
+                  </div>
+                  <div className="mt-1 text-[12px] sm:text-[13px] font-medium text-white/60">
+                    Send a message and we’ll get back to you.
+                  </div>
                 </div>
               </div>
 
@@ -171,16 +176,21 @@ export default function ContactUs(props) {
               />
             </div>
 
-            {/* RIGHT: Chat Support */}
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-lg backdrop-blur">
-              <div className="mb-4">
-                <div className="text-[18px] font-extrabold tracking-tight">Chat Support</div>
-                <div className="mt-1 text-[13px] font-medium text-white/60">
+            {/* Chat Support takes 1/3 width on xl; full width on mobile */}
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 lg:p-7 shadow-lg backdrop-blur">
+              <div className="mb-5">
+                <div className="text-[17px] sm:text-[20px] font-extrabold tracking-tight">
+                  Chat Support
+                </div>
+                <div className="mt-1 text-[12px] sm:text-[13px] font-medium text-white/60">
                   Quick replies and guided help.
                 </div>
               </div>
 
-              <ChatSupport serverTemplateSubject={serverTemplateSubject} />
+              {/* Make ChatSupport stretch inside */}
+              <div className="w-full">
+                <ChatSupport serverTemplateSubject={serverTemplateSubject} />
+              </div>
             </div>
           </div>
         </section>

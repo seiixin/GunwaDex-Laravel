@@ -1,7 +1,7 @@
 import React from "react";
 import PageShell from "@/Components/GunwaDex/PageShell";
 import AuthorOverview from "@/Components/Guest/AuthorDetail/AuthorOverview";
-import StoryCards from "@/Components/Guest/AuthorDetail/StoryCards";
+import StoryCard from "@/Components/Guest/StoryCard";
 import AuthorArticles from "@/Components/Guest/AuthorDetail/AuthorArticles";
 
 export default function AuthorDetail({ author, stories = [], articles = [] }) {
@@ -17,17 +17,27 @@ export default function AuthorDetail({ author, stories = [], articles = [] }) {
           </span>
         </div>
 
-        {/* ✅ Smaller StoryCards: wrap with smaller-card grid constraints */}
+        {/* ✅ Mobile ONLY: 2 columns. Desktop/tablet: keep your original scaling (5→4→3→2→1) */}
         <div className="mt-4">
-          <div className="grid grid-cols-5 gap-3 max-[1100px]:grid-cols-4 max-[980px]:grid-cols-3 max-[760px]:grid-cols-2 max-[560px]:grid-cols-1">
+          <div
+            className={[
+              "grid gap-3",
+              // ✅ mobile (base) = 2 cols
+              "grid-cols-2",
+              // ✅ from sm and up, revert to your original responsive rules
+              "sm:grid-cols-5",
+              "sm:max-[1100px]:grid-cols-4",
+              "sm:max-[980px]:grid-cols-3",
+              "sm:max-[760px]:grid-cols-2",
+              "sm:max-[560px]:grid-cols-1",
+            ].join(" ")}
+          >
             {(stories || []).map((s, idx) => (
               <div
                 key={s?.id ?? s?.slug ?? `story-${idx}`}
-                className="mx-auto w-full max-w-[190px]"
+                className="w-full"
               >
-                {/* StoryCards previously handled layout; now we feed it one-by-one if needed */}
-                {/* If your StoryCards already renders StoryCard internally, see note below */}
-                <StoryCards stories={[s]} />
+                <StoryCard story={s} />
               </div>
             ))}
           </div>

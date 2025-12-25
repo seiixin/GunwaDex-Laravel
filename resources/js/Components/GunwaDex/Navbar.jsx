@@ -23,7 +23,7 @@ function NavItem({ href, label, active, onClick }) {
       className={cx(
         // bigger + cleaner font
         "text-[15px] font-semibold tracking-wide transition-colors duration-150",
-        active ? "text-orange-400" : "text-white/75 hover:text-white"
+        active ? "text-pink-400" : "text-white/75 hover:text-white"
       )}
     >
       {label}
@@ -72,7 +72,9 @@ export default function Navbar({ active = "home" }) {
       { key: "articles", label: "Articles", href: safeRoute("articles.index") },
       { key: "categories", label: "Categories", href: safeRoute("categories.index") },
       { key: "authors", label: "Authors", href: safeRoute("authors.index") },
-      { key: "stories", label: "Stories", href: safeRoute("stories.index", undefined, safeRoute("home")) },
+
+      // ✅ REPLACED: Stories -> Contact Us
+      { key: "contact", label: "Contact Us", href: "/contact-us" },
     ],
     []
   );
