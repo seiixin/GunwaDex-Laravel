@@ -12,7 +12,6 @@ export default function PageShell({ active = "home", children }) {
   const panelRef = useRef(null);
   const btnRef = useRef(null);
 
-  const openSupportChat = () => setIsChatOpen(true);
   const closeSupportChat = () => setIsChatOpen(false);
   const toggleSupportChat = () => setIsChatOpen((v) => !v);
 
@@ -54,20 +53,28 @@ export default function PageShell({ active = "home", children }) {
         {children}
       </main>
 
-      {/* Floating chat panel (ANCHOR above FAB) */}
+      {/* Floating chat panel (MAX HEIGHT) */}
       {isChatOpen && (
-        <div className="fixed bottom-20 right-4 z-[70] w-[calc(100vw-32px)] sm:w-[420px]">
+        <div
+          className="
+            fixed bottom-20 right-4 z-[70]
+            w-[calc(100vw-32px)] sm:w-[420px]
+            h-[calc(100dvh-96px)]
+          "
+        >
           <div
             ref={panelRef}
             className="
+              h-full
               overflow-hidden rounded-2xl
               border border-white/10
               bg-[#0b0b0b]
               shadow-2xl shadow-black/60
+              flex flex-col
             "
           >
-            {/* Header */}
-            <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+            {/* Header (fixed area) */}
+            <div className="shrink-0 flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
               <div className="min-w-0">
                 <div className="text-[13px] font-extrabold tracking-wide text-white">
                   Chat Support
@@ -106,13 +113,13 @@ export default function PageShell({ active = "home", children }) {
               </button>
             </div>
 
-            {/* Body */}
-            <div className="max-h-[65dvh] overflow-y-auto">
+            {/* Body (fills remaining height) */}
+            <div className="flex-1 min-h-0 overflow-y-auto">
               <ChatSupport onClose={closeSupportChat} />
             </div>
 
-            {/* Small “tail” pointer (optional) */}
-            <div className="relative">
+            {/* Tail pointer (optional) */}
+            <div className="relative shrink-0">
               <div className="absolute -bottom-2 right-6 h-4 w-4 rotate-45 border-r border-b border-white/10 bg-[#0b0b0b]" />
             </div>
           </div>
@@ -139,7 +146,6 @@ export default function PageShell({ active = "home", children }) {
           focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60
         "
       >
-        {/* Icon */}
         <svg
           viewBox="0 0 24 24"
           className="h-5 w-5 sm:h-6 sm:w-6"
@@ -155,7 +161,6 @@ export default function PageShell({ active = "home", children }) {
           <path d="M8 14h6" />
         </svg>
 
-        {/* Tooltip */}
         <span
           className="
             pointer-events-none absolute right-16 hidden sm:block

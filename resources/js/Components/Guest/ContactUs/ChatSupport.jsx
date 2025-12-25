@@ -31,8 +31,7 @@ const trimLine = (v) => (v == null ? v : String(v).replace(/[ \t]+/g, " ").trim(
 // ✅ orange → pink tokens
 const GRADIENT_BG = "bg-gradient-to-r from-orange-400 to-pink-500";
 const GRADIENT_BG_SOFT = "bg-gradient-to-r from-orange-400/20 to-pink-500/20";
-const GRADIENT_RING =
-  "focus:ring-2 focus:ring-pink-400/50 focus:ring-orange-400/40";
+const GRADIENT_RING = "focus:ring-2 focus:ring-pink-400/50 focus:ring-orange-400/40";
 
 function GradientDot() {
   return <span className={cx("h-2.5 w-2.5 rounded-full", GRADIENT_BG)} />;
@@ -79,29 +78,8 @@ function InitialAvatar({ name = "User", tone = "user" }) {
   );
 }
 
-// ✅ Desktop chip (icons ok on desktop)
-function ConcernChip({ label, onClick, icon: Icon }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cx(
-        "inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5",
-        "px-3 py-2 text-[12px] font-semibold text-white/85 hover:bg-white/10 active:scale-[0.98]",
-        "whitespace-nowrap"
-      )}
-      title={`Insert: ${label}`}
-    >
-      <GradientIconBadge className="h-6 w-6">
-        <Icon size={14} />
-      </GradientIconBadge>
-      {label}
-    </button>
-  );
-}
-
-// ✅ Mobile dropdown (NO ICONS)
-function MobileConcernDropdown({ options, onPick }) {
+// ✅ Dropdown (used for BOTH mobile + desktop)
+function TemplateDropdown({ options, onPick }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
 
@@ -388,8 +366,7 @@ export default function ChatSupport({ serverTemplateSubject = null }) {
       {
         label: "Wrong chapter order",
         icon: BadgeHelp,
-        text:
-          "Concern: Wrong chapter order\nStory:\nExpected order:\nCurrent order:\n",
+        text: "Concern: Wrong chapter order\nStory:\nExpected order:\nCurrent order:\n",
       },
       {
         label: "Report content",
@@ -487,27 +464,10 @@ export default function ChatSupport({ serverTemplateSubject = null }) {
           Quick templates
         </div>
 
-        {/* ✅ MOBILE: dropdown (no icons) */}
-        <div className="sm:hidden">
-          <MobileConcernDropdown
-            options={concerns}
-            onPick={(text) => applyConcernTemplate(text)}
-          />
-        </div>
-
-        {/* ✅ DESKTOP: chips */}
-        <div className="hidden sm:block">
-          <div className="flex flex-wrap gap-2">
-            {concerns.map((c) => (
-              <ConcernChip
-                key={c.label}
-                label={c.label}
-                icon={c.icon}
-                onClick={() => applyConcernTemplate(c.text)}
-              />
-            ))}
-          </div>
-        </div>
+        <TemplateDropdown
+          options={concerns}
+          onPick={(text) => applyConcernTemplate(text)}
+        />
       </div>
 
       {/* Body: Messages + Composer */}
@@ -669,60 +629,65 @@ export default function ChatSupport({ serverTemplateSubject = null }) {
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row sm:items-end gap-2">
-              <div className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <textarea
-                  value={chatText}
-                  onChange={(e) => setChatText(e.target.value)}
-                  onKeyDown={onComposerKeyDown}
-                  placeholder="Describe your concern… (Story title, chapter, and what happened)"
-                  rows={2}
-                  className="min-h-[56px] max-h-52 w-full resize-y bg-transparent text-[14px] font-medium text-white placeholder-white/40 outline-none"
-                />
+            {/* ✅ Composer: textarea + bottom action row INSIDE the input card */}
+            <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+  <div className="px-4 pt-4">
+    <textarea
+      value={chatText}
+      onChange={(e) => setChatText(e.target.value)}
+      onKeyDown={onComposerKeyDown}
+      placeholder="Describe your concern… (Story title, chapter, and what happened)"
+      rows={4}
+      className={cx(
+        "w-full bg-transparent outline-none",
+        "text-[14px] font-medium text-white placeholder-white/40",
+        // ✅ reduced standard height
+        "min-h-[110px] sm:min-h-[130px] max-h-80",
+        "resize-y"
+      )}
+    />
+  </div>
+
+
+              <div className="mt-3 border-t border-white/10 px-3 py-3">
+                <div className="flex items-center justify-end gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx"
+                    className="hidden"
+                    onChange={(e) => setAttachment(e.target.files?.[0] ?? null)}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className={cx(
+                      "inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10",
+                      GRADIENT_BG_SOFT,
+                      "text-white hover:brightness-110 active:scale-[0.98] transition"
+                    )}
+                    title="Attach"
+                  >
+                    <Paperclip size={18} />
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={sendingChat || (!chatText.trim() && !attachment)}
+                    className={cx(
+                      "inline-flex h-11 items-center justify-center gap-2 rounded-full px-5 text-[14px] font-extrabold tracking-wide",
+                      "transition active:scale-[0.98]",
+                      sendingChat || (!chatText.trim() && !attachment)
+                        ? "cursor-not-allowed bg-white/10 text-white/50"
+                        : cx(GRADIENT_BG, "text-black hover:brightness-110 shadow-sm")
+                    )}
+                  >
+                    {sendingChat ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
+                    <span>{sendingChat ? "Sending…" : "Send"}</span>
+                  </button>
+                </div>
               </div>
-
-              <div className="flex items-center justify-end gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx"
-                  className="hidden"
-                  onChange={(e) => setAttachment(e.target.files?.[0] ?? null)}
-                />
-
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className={cx(
-                    "inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10",
-                    GRADIENT_BG_SOFT,
-                    "text-white hover:brightness-110 active:scale-[0.98] transition"
-                  )}
-                  title="Attach"
-                >
-                  <Paperclip size={18} />
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={sendingChat || (!chatText.trim() && !attachment)}
-                  className={cx(
-                    "inline-flex h-11 items-center justify-center gap-2 rounded-full px-5 text-[14px] font-extrabold tracking-wide",
-                    "transition active:scale-[0.98]",
-                    sendingChat || (!chatText.trim() && !attachment)
-                      ? "cursor-not-allowed bg-white/10 text-white/50"
-                      : cx(GRADIENT_BG, "text-black hover:brightness-110 shadow-sm")
-                  )}
-                >
-                  {sendingChat ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
-                  <span>{sendingChat ? "Sending…" : "Send"}</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-2 flex items-center gap-2 text-[12px] text-white/45">
-              <BadgeHelp size={14} className="text-white/40" />
-              Tip: Add story title + chapter number and attach a screenshot if possible.
             </div>
           </form>
         )}
