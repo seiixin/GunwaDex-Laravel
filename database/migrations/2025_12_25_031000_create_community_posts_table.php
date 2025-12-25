@@ -1,0 +1,36 @@
+<?php
+
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('community_posts', function (Blueprint $table) {
+            $table->id();
+
+            $table->foreignId('user_id')
+                ->constrained('users')
+                ->cascadeOnDelete();
+
+            $table->string('image_path')->nullable();
+            $table->text('description')->nullable();
+
+            $table->enum('status', ['pending', 'approved', 'flagged', 'removed'])->default('approved');
+            $table->unsignedInteger('flags_count')->default(0);
+
+            $table->timestamps();
+
+            $table->index(['status', 'created_at']);
+            $table->index(['user_id', 'created_at']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('community_posts');
+    }
+};
