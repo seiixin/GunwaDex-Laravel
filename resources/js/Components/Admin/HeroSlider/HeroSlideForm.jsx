@@ -2,65 +2,114 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useForm } from "@inertiajs/react";
 import { ImagePlus, Save, X, Link as LinkIcon } from "lucide-react";
 
+/**
+ * ROUTE PREFIX:
+ * If your routes are named:
+ *   admin.hero.store / admin.hero.update / admin.hero.toggle ...
+ * keep "admin.hero"
+ *
+ * If your routes are named:
+ *   admin.hero_slider.store / admin.hero_slider.update ...
+ * set to "admin.hero_slider"
+ */
+const ROUTE_PREFIX = "admin.hero";
+
 export default function HeroSlideForm({
   mode = "create", // create | edit
   slide = null,
   onCancel,
   onSaved,
 }) {
-  const isEdit = mode === "edit";
+  const isEdit = mode === "edit" && !!slide?.id;
 
   const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
-    title: slide?.title || "",
-    details: slide?.details || "",
-    link_url: slide?.link_url || "",
+    title: slide?.title ?? "",
+    details: slide?.details ?? "",
+    link_url: slide?.link_url ?? "",
     sort_order: slide?.sort_order ?? 0,
     is_active: slide?.is_active ?? true,
-    image: null,
+    image: null, // File
   });
 
-  const [previewUrl, setPreviewUrl] = useState(slide?.image_url || null);
+  const [previewUrl, setPreviewUrl] = useState(slide?.image_url ?? null);
 
   useEffect(() => {
-    // when switching to a different slide
+    // When switching slide or opening create/edit, repopulate form safely
     reset();
     clearErrors();
+
     setData({
-      title: slide?.title || "",
-      details: slide?.details || "",
-      link_url: slide?.link_url || "",
+      title: slide?.title ?? "",
+      details: slide?.details ?? "",
+      link_url: slide?.link_url ?? "",
       sort_order: slide?.sort_order ?? 0,
       is_active: slide?.is_active ?? true,
       image: null,
     });
-    setPreviewUrl(slide?.image_url || null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slide?.id]);
 
-  const header = useMemo(() => {
-    return isEdit ? "Edit Slide" : "Add New Slide";
-  }, [isEdit]);
+    setPreviewUrl(slide?.image_url ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slide?.id, mode]);
+
+  const header = useMemo(() => (isEdit ? "Edit Slide" : "Add New Slide"), [isEdit]);
 
   const submit = (e) => {
     e.preventDefault();
 
-    const url = isEdit ? route("admin.hero.update", slide.id) : route("admin.hero.store");
+    // ✅ correct routes
+    const storeUrl = route(`${ROUTE_PREFIX}.store`);
+    const updateUrl = isEdit ? route(`${ROUTE_PREFIX}.update`, slide.id) : null;
 
-    post(url, {
-      forceFormData: true,
-      onSuccess: () => {
-        if (!isEdit) {
+    if (isEdit) {
+      // ✅ FIX: update route is PUT; easiest w/ files is POST + _method=PUT
+      post(
+        updateUrl,
+        {
+          forceFormData: true,
+          preserveScroll: true,
+          onSuccess: () => {
+            onSaved?.();
+          },
+        },
+        {
+          // not used; inertia useForm signature doesn't accept 3rd param; kept for clarity
+        }
+      );
+    } else {
+      post(storeUrl, {
+        forceFormData: true,
+        preserveScroll: true,
+        onSuccess: () => {
           reset();
           setPreviewUrl(null);
-        }
-        onSaved?.();
-      },
-    });
+          onSaved?.();
+        },
+      });
+    }
   };
+
+  /**
+   * IMPORTANT:
+   * Inertia useForm().post sends current `data`.
+   * For edit, we must include _method: "PUT" in the payload,
+   * otherwise it becomes POST /admin/hero-slider/{id} and fails.
+   */
+  useEffect(() => {
+    if (isEdit) {
+      // keep _method present during edit submit
+      setData("_method", "PUT");
+    } else {
+      // remove _method in create
+      // cannot truly delete key in useForm; set empty and Laravel will ignore
+      setData("_method", undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit]);
 
   const pickFile = (file) => {
     if (!file) return;
     setData("image", file);
+
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
   };
@@ -84,12 +133,13 @@ export default function HeroSlideForm({
           >
             <Save size={16} /> Save
           </button>
+
           <button
             type="button"
             onClick={() => {
               reset();
               clearErrors();
-              setPreviewUrl(slide?.image_url || null);
+              setPreviewUrl(slide?.image_url ?? null);
               onCancel?.();
             }}
             className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold hover:bg-white/10"
@@ -120,9 +170,10 @@ export default function HeroSlideForm({
             )}
           </div>
 
-          {errors.image && (
-            <div className="mt-2 text-xs font-semibold text-red-300">{errors.image}</div>
-          )}
+          {errors.image && <div className="mt-2 text-xs font-semibold text-red-300">{errors.image}</div>}
+          {isEdit ? (
+            <div className="mt-2 text-[11px] text-white/55">Tip: image is optional when editing.</div>
+          ) : null}
         </div>
 
         {/* controls */}
@@ -144,7 +195,7 @@ export default function HeroSlideForm({
             <div>
               <div className="mb-1 text-[11px] font-extrabold text-white/70">TITLE</div>
               <input
-                value={data.title}
+                value={data.title ?? ""}
                 onChange={(e) => setData("title", e.target.value)}
                 className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
                 placeholder="Optional title"
@@ -157,7 +208,7 @@ export default function HeroSlideForm({
                 <LinkIcon size={14} /> LINK URL
               </div>
               <input
-                value={data.link_url}
+                value={data.link_url ?? ""}
                 onChange={(e) => setData("link_url", e.target.value)}
                 className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
                 placeholder="Optional (e.g. /stories/gayuma)"
@@ -170,7 +221,7 @@ export default function HeroSlideForm({
                 <div className="mb-1 text-[11px] font-extrabold text-white/70">SORT</div>
                 <input
                   type="number"
-                  value={data.sort_order}
+                  value={data.sort_order ?? 0}
                   onChange={(e) => setData("sort_order", e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-white/20"
                   min={0}
@@ -199,16 +250,12 @@ export default function HeroSlideForm({
             <div>
               <div className="mb-1 text-[11px] font-extrabold text-white/70">DETAILS</div>
               <textarea
-                value={data.details}
+                value={data.details ?? ""}
                 onChange={(e) => setData("details", e.target.value)}
                 className="h-24 w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20"
                 placeholder="Enter slide details..."
               />
               {errors.details && <div className="mt-1 text-xs text-red-300">{errors.details}</div>}
-            </div>
-
-            <div className="text-[11px] text-white/55">
-              Tip: Run <span className="font-mono text-white/75">php artisan storage:link</span> if images do not load.
             </div>
           </div>
         </div>
