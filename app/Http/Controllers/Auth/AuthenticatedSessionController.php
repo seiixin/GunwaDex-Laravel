@@ -30,10 +30,44 @@ class AuthenticatedSessionController extends Controller
     public function store(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
-
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        $user = $request->user();
+
+        // Optional: block banned users
+        if (($user->is_banned ?? false) === true) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return back()->withErrors([
+                'email' => 'Your account has been banned.',
+            ]);
+        }
+
+        /**
+         * If email verification is enabled:
+         * - not verified users should be redirected to verification notice
+         * NOTE: 'verified' middleware will also protect routes,
+         * but this makes UX cleaner after login.
+         */
+        if (method_exists($user, 'hasVerifiedEmail') && !$user->hasVerifiedEmail()) {
+            return redirect()->route('verification.notice');
+        }
+
+        // ✅ Admin redirect
+        if (($user->role ?? null) === 'admin') {
+            // If you set admin routes: name('admin.dashboard')
+            if (Route::has('admin.dashboard')) {
+                return redirect()->intended(route('admin.dashboard'));
+            }
+
+            // fallback if route name not present
+            return redirect()->intended('/admin');
+        }
+
+        // Default redirect (reader/author)
+        return redirect()->intended(route('home'));
     }
 
     /**
@@ -44,7 +78,6 @@ class AuthenticatedSessionController extends Controller
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
 
         return redirect('/');

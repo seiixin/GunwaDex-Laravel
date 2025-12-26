@@ -3,11 +3,18 @@ import { Head, Link, useForm } from "@inertiajs/react";
 
 /**
  * Tailwind-only register page with /public/Images/LoginPageBG.jpg background.
- * Uses standard Breeze register route: route('register')
+ * Posts to Breeze register route: route('register')
+ *
+ * Updated to match users table:
+ * - username
+ * - display_name
+ * - email
+ * - password + password_confirmation
  */
 export default function Register() {
   const form = useForm({
-    name: "",
+    username: "",
+    display_name: "",
     email: "",
     password: "",
     password_confirmation: "",
@@ -41,18 +48,33 @@ export default function Register() {
             <div className="text-center text-xl font-extrabold">CREATE ACCOUNT</div>
 
             <form onSubmit={submit} className="mt-6 space-y-3">
+              {/* Username */}
               <div className="space-y-1">
                 <input
-                  value={form.data.name}
-                  onChange={(e) => form.setData("name", e.target.value)}
+                  value={form.data.username}
+                  onChange={(e) => form.setData("username", e.target.value)}
                   className="w-full rounded-full bg-white px-4 py-2 text-sm font-semibold text-black outline-none"
-                  placeholder="Name"
+                  placeholder="Username"
+                  autoComplete="username"
+                  required
+                />
+                {fieldError(form.errors.username)}
+              </div>
+
+              {/* Display Name */}
+              <div className="space-y-1">
+                <input
+                  value={form.data.display_name}
+                  onChange={(e) => form.setData("display_name", e.target.value)}
+                  className="w-full rounded-full bg-white px-4 py-2 text-sm font-semibold text-black outline-none"
+                  placeholder="Display Name"
                   autoComplete="name"
                   required
                 />
-                {fieldError(form.errors.name)}
+                {fieldError(form.errors.display_name)}
               </div>
 
+              {/* Email */}
               <div className="space-y-1">
                 <input
                   value={form.data.email}
@@ -60,12 +82,13 @@ export default function Register() {
                   type="email"
                   className="w-full rounded-full bg-white px-4 py-2 text-sm font-semibold text-black outline-none"
                   placeholder="Email"
-                  autoComplete="username"
+                  autoComplete="email"
                   required
                 />
                 {fieldError(form.errors.email)}
               </div>
 
+              {/* Password */}
               <div className="space-y-1">
                 <input
                   value={form.data.password}
@@ -79,6 +102,7 @@ export default function Register() {
                 {fieldError(form.errors.password)}
               </div>
 
+              {/* Confirm Password */}
               <div className="space-y-1">
                 <input
                   value={form.data.password_confirmation}
