@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -23,6 +22,7 @@ class EpisodeAsset extends Model
     ];
 
     protected $casts = [
+        'episode_id' => 'integer',
         'sort_order' => 'integer',
         'width' => 'integer',
         'height' => 'integer',

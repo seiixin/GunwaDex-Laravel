@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -24,6 +23,13 @@ class Episode extends Model
         'published_at',
         'pages_count',
         'views_count',
+
+        // ✅ IMPORTANT: thumbnail persistence
+        'thumbnail_path',
+
+        // optional fields used by your modal/index payload
+        'creator_note',
+        'comments_enabled',
     ];
 
     protected $casts = [
@@ -32,6 +38,7 @@ class Episode extends Model
         'published_at' => 'datetime',
         'pages_count' => 'integer',
         'views_count' => 'integer',
+        'comments_enabled' => 'boolean',
     ];
 
     public function story(): BelongsTo
@@ -41,6 +48,7 @@ class Episode extends Model
 
     public function assets(): HasMany
     {
+        // keeps your default ordering
         return $this->hasMany(EpisodeAsset::class)->orderBy('sort_order');
     }
 

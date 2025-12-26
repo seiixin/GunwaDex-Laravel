@@ -31,7 +31,7 @@ use App\Http\Controllers\Admin\ChatController;
 use App\Http\Controllers\Admin\PaymongoSettingsController;
 use App\Http\Controllers\Admin\HeroSliderController;
 use App\Http\Controllers\Admin\StoriesManagementController;
-
+use App\Http\Controllers\Admin\EpisodeMangementController;
 
 use App\Http\Controllers\ChatSupportController;
 use App\Http\Controllers\UserContactUsController;
@@ -270,7 +270,31 @@ Route::middleware(['throttle:60,1'])
         Route::post('/stories/{story}/publish', [StoriesManagementController::class, 'publish'])->name('stories.publish');
         Route::post('/stories/{story}/draft', [StoriesManagementController::class, 'draft'])->name('stories.draft');
 
+        // EPISODE MANAGEMENT
+    Route::prefix('episodes')->name('episodes.')->group(function () {
+        Route::get('/', [EpisodeMangementController::class, 'index'])->name('index');
+        Route::post('/', [EpisodeMangementController::class, 'store'])->name('store');
+        Route::put('/{episode}', [EpisodeMangementController::class, 'update'])->name('update');
+        Route::delete('/{episode}', [EpisodeMangementController::class, 'destroy'])->name('destroy');
+
+        Route::post('/{episode}/publish', [EpisodeMangementController::class, 'publish'])->name('publish');
+        Route::post('/{episode}/unpublish', [EpisodeMangementController::class, 'unpublish'])->name('unpublish');
+
+        Route::post('/{episode}/schedule', [EpisodeMangementController::class, 'schedule'])->name('schedule');
+        Route::post('/bulk-schedule', [EpisodeMangementController::class, 'bulkSchedule'])->name('bulkSchedule');
+
+        Route::post('/{episode}/thumbnail', [EpisodeMangementController::class, 'uploadThumbnail'])->name('thumbnail');
+        Route::post('/{episode}/assets', [EpisodeMangementController::class, 'uploadAssets'])->name('assets');
+
+        Route::post('/{episode}/assets/reorder', [EpisodeMangementController::class, 'reorderPages'])->name('assets.reorder');
+        Route::delete('/{episode}/assets/{asset}', [EpisodeMangementController::class, 'deletePage'])->name('assets.delete');
+
+        // ✅ JSON list for existing pages
+        Route::get('/{episode}/assets-json', [EpisodeMangementController::class, 'assetsJson'])
+            ->name('assets.json');
     });
+
+});
 
 /*
 |--------------------------------------------------------------------------
