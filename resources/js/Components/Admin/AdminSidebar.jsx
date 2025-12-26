@@ -67,7 +67,7 @@ export default function AdminSidebar({ active = "dashboard", onNavigate }) {
   ];
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/5 to-black/30 p-3 shadow-[0_30px_80px_-40px_rgba(0,0,0,.9)]">
+  <div className="rounded-2xl border border-white/10 bg-black sm:bg-gradient-to-b sm:from-white/5 sm:to-black/30 p-3 shadow-[0_30px_80px_-40px_rgba(0,0,0,.9)]">
       <div className="mb-3 rounded-xl border border-white/10 bg-black/30 px-3 py-3">
         <div className="text-xs font-extrabold tracking-wide text-white">Admin Menu</div>
         <div className="mt-1 text-[11px] text-white/60">

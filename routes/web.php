@@ -30,6 +30,8 @@ use App\Http\Controllers\Admin\BackupController;
 use App\Http\Controllers\Admin\ChatController;
 use App\Http\Controllers\Admin\PaymongoSettingsController;
 use App\Http\Controllers\Admin\HeroSliderController;
+use App\Http\Controllers\Admin\StoriesManagementController;
+
 
 use App\Http\Controllers\ChatSupportController;
 use App\Http\Controllers\UserContactUsController;
@@ -248,7 +250,7 @@ Route::middleware(['throttle:60,1'])
         Route::post('/store-points/keys', [PaymongoSettingsController::class, 'saveKeys'])
         ->name('paymongo.keys.save');
 
-                // Hero Slider pages
+        // Hero Slider pages
         // ALIAS ROUTES (para tugma sa existing frontend: admin.hero.*)
         Route::post('/hero-slider', [HeroSliderController::class, 'store'])->name('hero.store');
         Route::put('/hero-slider/{slide}', [HeroSliderController::class, 'update'])->name('hero.update');
@@ -257,6 +259,16 @@ Route::middleware(['throttle:60,1'])
         Route::patch('/hero-slider/{slide}/position', [HeroSliderController::class, 'updatePosition'])->name('hero.position');
         Route::get('/hero-slider', [HeroSliderController::class, 'index'])->name('hero.index');
         Route::get('/hero-slider/{slide}/edit', [HeroSliderController::class, 'edit'])->name('hero.edit');
+
+        // Stories Management
+        Route::get('/stories', [StoriesManagementController::class, 'index'])->name('stories.index');
+        Route::post('/stories', [StoriesManagementController::class, 'store'])->name('stories.store');
+        Route::put('/stories/{story}', [StoriesManagementController::class, 'update'])->name('stories.update');
+        Route::delete('/stories/{story}', [StoriesManagementController::class, 'destroy'])->name('stories.destroy');
+
+        Route::post('/stories/{story}/toggle-featured', [StoriesManagementController::class, 'toggleFeatured'])->name('stories.toggleFeatured');
+        Route::post('/stories/{story}/publish', [StoriesManagementController::class, 'publish'])->name('stories.publish');
+        Route::post('/stories/{story}/draft', [StoriesManagementController::class, 'draft'])->name('stories.draft');
 
     });
 

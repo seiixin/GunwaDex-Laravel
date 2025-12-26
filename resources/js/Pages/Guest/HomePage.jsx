@@ -1,8 +1,20 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import PageShell from "@/Components/GunwaDex/PageShell";
-import { mockEpisodes, mockStories } from "@/lib/gwMockData";
-import { Link } from "@inertiajs/react";
+import { Link, usePage } from "@inertiajs/react";
 import StoryCard from "@/Components/Guest/StoryCard";
+import HeroSlider from "@/Components/Guest/HeroSlider";
+
+// OPTIONAL fallback only (safe kung wala sa project)
+let mockEpisodes = [];
+let mockStories = [];
+try {
+  // eslint-disable-next-line import/no-unresolved
+  const mocks = require("@/lib/gwMockData");
+  mockEpisodes = mocks?.mockEpisodes ?? [];
+  mockStories = mocks?.mockStories ?? [];
+} catch (e) {
+  // ignore if file doesn't exist
+}
 
 function Pill({ icon, children }) {
   return (
@@ -19,83 +31,101 @@ function Pill({ icon, children }) {
   );
 }
 
-function Segment({ active, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        // ✅ smaller on mobile, normal on sm+
-        "h-[3px] w-6 sm:h-[4px] sm:w-10",
-        "rounded-full transition",
-        active ? "bg-white" : "bg-white/30 hover:bg-white/60",
-      ].join(" ")}
-      aria-label="carousel segment"
-    />
-  );
-}
-
 function normalizeStoryForCard(story, opts = {}) {
-  const latestNo = opts.latest_episode_no ?? story?.latest_episode_no ?? 32;
-  const lastDate = opts.last_update_date ?? story?.last_update_date ?? "10/31/25";
+  const latestNo = opts.latest_episode_no ?? story?.latest_episode_no ?? 1;
+  const lastDate = opts.last_update_date ?? story?.last_update_date ?? "";
 
   return {
-    slug: story?.slug ?? "gayuma",
-    title: story?.title ?? "GAYUMA",
-    cover_image: story?.cover_image ?? "/Images/BookCoverSample.png",
-    rating_avg: story?.rating_avg ?? 5.0,
+    slug: story?.slug ?? story?.id ?? "story",
+    title: story?.title ?? "Untitled",
+    cover_image:
+      story?.cover_image ||
+      story?.cover_image_path ||
+      story?.cover_image_url ||
+      "/Images/BookCoverSample.png",
+    rating_avg: Number(story?.rating_avg ?? story?.rating_avg_display ?? 0) || 0,
     latest_episode_no: latestNo,
     latest_episode_label: `Episode ${latestNo}`,
     prev_episode_label: `Episode ${Math.max(1, Number(latestNo) - 1)}`,
-    is_new: opts.is_new ?? story?.is_new ?? true,
+    is_new: opts.is_new ?? story?.is_new ?? false,
     last_update_date: lastDate,
   };
 }
 
-export default function HomePage() {
-  const [activeDot, setActiveDot] = useState(2);
+export default function HomePage(props) {
+  const page = usePage();
+  const p = { ...(page?.props ?? {}), ...(props ?? {}) };
 
-  const dots = useMemo(() => Array.from({ length: 7 }, (_, i) => i), []);
+  // ✅ from backend
+  const heroSlides = useMemo(() => {
+    const slides = p.heroSlides;
+    if (Array.isArray(slides) && slides.length > 0) return slides;
 
-  const heroSlides = useMemo(
-    () =>
-      Array.from({ length: 7 }, () => ({
-        image: "/Images/BannerSample.png",
-      })),
-    []
-  );
+    // fallback if none yet
+    return Array.from({ length: 5 }, () => ({
+      image: "/Images/BannerSample.png",
+      link_url: null,
+      title: null,
+      details: null,
+    }));
+  }, [p.heroSlides]);
 
-  const activeHero = heroSlides[activeDot] || heroSlides[0];
+  const featuredStories = useMemo(() => {
+    const list = Array.isArray(p.featuredStories) ? p.featuredStories : [];
+    if (list.length > 0) {
+      return list.map((s) =>
+        normalizeStoryForCard(s, {
+          is_new: !!s?.is_new,
+          latest_episode_no: s?.latest_episode_no ?? 1,
+          last_update_date: s?.last_update_date ?? "",
+        })
+      );
+    }
+
+    // fallback to mocks
+    return (mockStories || []).slice(0, 10).map((s) => normalizeStoryForCard(s));
+  }, [p.featuredStories]);
 
   const newEpisodeCards = useMemo(() => {
+    const list = Array.isArray(p.newEpisodes) ? p.newEpisodes : [];
+    if (list.length > 0) {
+      return list.map((ep) => {
+        const s = ep?.story || {};
+        const epNo = ep?.episode_no ?? 1;
+        const epDate = ep?.published_at ?? "";
+
+        return normalizeStoryForCard(
+          {
+            ...s,
+            slug: s?.slug ?? s?.id ?? "story",
+            cover_image: s?.cover_image_path ?? s?.cover_image ?? "/Images/BookCoverSample.png",
+          },
+          { latest_episode_no: epNo, last_update_date: epDate, is_new: true }
+        );
+      });
+    }
+
+    // fallback to mocks
     return (mockEpisodes || []).slice(0, 10).map((ep) => {
       const s = ep?.story || {};
-      const epNo = ep?.episode_no ?? ep?.episodeNumber ?? 32;
-      const epDate = ep?.published_at_display ?? ep?.published_at ?? "10/31/25";
+      const epNo = ep?.episode_no ?? ep?.episodeNumber ?? 1;
+      const epDate = ep?.published_at_display ?? ep?.published_at ?? "";
 
       return normalizeStoryForCard(
         {
           ...s,
-          slug: s?.slug ?? s?.id ?? "gayuma",
+          slug: s?.slug ?? s?.id ?? "story",
           cover_image: s?.cover_image ?? "/Images/BookCoverSample.png",
         },
         { latest_episode_no: epNo, last_update_date: epDate, is_new: true }
       );
     });
-  }, []);
+  }, [p.newEpisodes]);
 
-  const forYouCards = useMemo(() => {
-    return (mockStories || []).slice(0, 10).map((s) =>
-      normalizeStoryForCard(
-        { ...s, cover_image: s?.cover_image ?? "/Images/BookCoverSample.png" },
-        {
-          last_update_date: s?.last_update_date ?? "10/31/25",
-          is_new: s?.is_new ?? true,
-          latest_episode_no: s?.latest_episode_no ?? 32,
-        }
-      )
-    );
-  }, []);
+  // Articles are optional on UI; keep prop ready
+  const latestArticles = useMemo(() => {
+    return Array.isArray(p.latestArticles) ? p.latestArticles : [];
+  }, [p.latestArticles]);
 
   return (
     <PageShell active="home">
@@ -125,56 +155,9 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* HERO SLIDER */}
+      {/* ✅ HERO SLIDER (READ from DB via HomeController@index props.heroSlides) */}
       <div className="mt-4">
-        <div className="mx-auto w-full max-w-[1200px]">
-          <div className="relative">
-            <div
-              className={[
-                "relative w-full bg-black",
-                "h-[220px] xs:h-[260px] sm:h-[360px] lg:h-[520px]",
-              ].join(" ")}
-            >
-              <img
-                src={activeHero?.image}
-                alt="Hero slide"
-                className="absolute inset-0 h-full w-full object-contain"
-                draggable="false"
-              />
-
-              <div className="absolute inset-0 bg-black/10" />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-black via-black/60 to-transparent" />
-
-              {/* Segments */}
-              <div className="absolute inset-x-0 bottom-3 flex items-center justify-center px-3 sm:bottom-4 sm:px-4">
-                <div
-                  className={[
-                    "rounded-full border border-white/10 bg-black/35 backdrop-blur",
-                    // ✅ smaller container padding on mobile
-                    "px-2 py-1.5 sm:px-3 sm:py-2",
-                  ].join(" ")}
-                >
-                  <div
-                    className={[
-                      "flex items-center justify-center",
-                      // ✅ tighter gap on mobile
-                      "gap-1 sm:gap-2",
-                    ].join(" ")}
-                  >
-                    {dots.map((d) => (
-                      <Segment
-                        key={d}
-                        active={d === activeDot}
-                        onClick={() => setActiveDot(d)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* No border/shadow/rounded (kept as requested) */}
-          </div>
-        </div>
+        <HeroSlider slides={heroSlides} />
       </div>
 
       {/* NEW EPISODES */}
@@ -199,9 +182,9 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* FOR YOU */}
+      {/* FEATURED STORIES (optional grid, you can move this wherever you want) */}
       <div className="mt-7">
-        <Pill icon="🧠">For You</Pill>
+        <Pill icon="🔥">Featured</Pill>
 
         <div
           className={[
@@ -213,19 +196,33 @@ export default function HomePage() {
             "xl:grid-cols-5",
           ].join(" ")}
         >
-          {forYouCards.map((s) => (
-            <div key={`fy-${s.slug}`} className="w-full">
+          {featuredStories.map((s) => (
+            <div key={`feat-${s.slug}`} className="w-full">
               <StoryCard story={s} />
             </div>
           ))}
         </div>
       </div>
+
+      {/* LATEST ARTICLES (optional display placeholder) */}
+      {latestArticles.length > 0 ? (
+        <div className="mt-7">
+          <Pill icon="📰">Latest Articles</Pill>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {latestArticles.map((a) => (
+              <Link
+                key={`art-${a.id}-${a.slug}`}
+                href={route("articles.show", a.slug)}
+                className="rounded-2xl border border-white/10 bg-black/30 p-4 hover:bg-white/5"
+              >
+                <div className="text-sm font-extrabold text-white">{a.title}</div>
+                <div className="mt-1 text-[12px] text-white/60">{a.published_at ?? ""}</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </PageShell>
   );
 }
-
-/**
- * Note:
- * - I used "xs:" above. If your Tailwind config doesn't have xs,
- *   just remove "xs:h-[260px]" and keep the rest.
- */
