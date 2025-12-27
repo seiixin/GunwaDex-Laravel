@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Link } from "@inertiajs/react";
 
 function Star({ filled }) {
@@ -21,10 +21,10 @@ function Pill({ children }) {
     <span
       className={[
         "inline-flex items-center",
-        "w-fit max-w-full",          // ✅ di mag-stretch, fit content
+        "w-fit max-w-full",
         "rounded-md",
         "border border-white/15 bg-white/5",
-        "px-1.5 py-[3px]",           // ✅ mas manipis na padding
+        "px-1.5 py-[3px]",
         "text-[10.5px] sm:text-[11px]",
         "leading-none text-white/90",
         "truncate",
@@ -36,16 +36,43 @@ function Pill({ children }) {
   );
 }
 
+function normalizeStorageUrl(input) {
+  if (!input) return null;
+
+  // already absolute
+  if (input.startsWith("http://") || input.startsWith("https://")) return input;
+
+  // already root-relative (/storage/..., /Images/...)
+  if (input.startsWith("/")) return input;
+
+  // remove "storage/" prefix if DB stored it
+  const cleaned = input.replace(/^storage\//, "");
+
+  // if it's a bare filename like "RyypZ...png" OR relative like "story-covers/.."
+  return `/storage/${cleaned}`;
+}
+
 export default function StoryCard({ story }) {
+  const fallbackCover = "/Images/BookCoverSample.png";
+
   const data = useMemo(() => {
     const title = story?.title || "GAYUMA";
     const slug = story?.slug || "gayuma";
-    const cover = story?.cover_image || "/Images/BookCoverSample.png";
 
-    const ratingRaw = Number(story?.rating_avg ?? 5);
+    // ✅ try multiple possible keys from backend
+    const rawCover =
+      story?.cover_image ||
+      story?.cover_image_path ||
+      story?.cover ||
+      story?.image ||
+      null;
+
+    const cover = normalizeStorageUrl(rawCover) || fallbackCover;
+
+    const ratingRaw = Number(story?.rating_avg ?? 0);
     const rating = Number.isFinite(ratingRaw) ? ratingRaw : 0;
 
-    const latestEpNo = story?.latest_episode_no ?? 32;
+    const latestEpNo = story?.latest_episode_no ?? 1;
     const latestEpLabel = story?.latest_episode_label || `Episode ${latestEpNo}`;
     const prevEpLabel =
       story?.prev_episode_label ||
@@ -55,14 +82,22 @@ export default function StoryCard({ story }) {
       title,
       slug,
       cover,
+      rawCover,
       rating,
       latestEpNo,
       latestEpLabel,
       prevEpLabel,
       isNew: Boolean(story?.is_new),
-      lastUpdate: story?.last_update_date || "10/31/25",
+      lastUpdate: story?.last_update_date || "—",
     };
   }, [story]);
+
+  const [imgSrc, setImgSrc] = useState(data.cover);
+
+  // keep imgSrc in sync if story changes
+  React.useEffect(() => {
+    setImgSrc(data.cover);
+  }, [data.cover]);
 
   const filledStars = Math.max(0, Math.min(5, Math.round(data.rating)));
 
@@ -80,15 +115,24 @@ export default function StoryCard({ story }) {
       {/* COVER */}
       <div className="relative aspect-[3/4] bg-black">
         <img
-          src={data.cover}
+          src={imgSrc}
           alt={data.title}
           className="absolute inset-0 h-full w-full object-cover"
           draggable="false"
           loading="lazy"
+          onError={() => {
+            // 🔎 debug: show which record/path failed
+            console.warn("[StoryCard] cover failed", {
+              storyId: story?.id,
+              title: data.title,
+              rawCover: data.rawCover,
+              resolved: imgSrc,
+            });
+            setImgSrc(fallbackCover);
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
 
-        {/* NEW badge on image (saves vertical space for 2-col mobile) */}
         {data.isNew && (
           <div className="absolute left-2 top-2 rounded-md bg-red-600 px-2 py-1 text-[10px] font-extrabold tracking-wide text-white shadow">
             NEW
@@ -98,7 +142,6 @@ export default function StoryCard({ story }) {
 
       {/* INFO */}
       <div className="bg-black px-2.5 pb-3 pt-2.5 sm:px-3 sm:pb-4 sm:pt-3 text-white">
-        {/* Title */}
         <div
           className={[
             "font-extrabold tracking-wide",
@@ -111,7 +154,6 @@ export default function StoryCard({ story }) {
           {data.title}
         </div>
 
-        {/* Rating row (compact for 2-col) */}
         <div className="mt-1.5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-[2px]">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -123,28 +165,23 @@ export default function StoryCard({ story }) {
           </div>
         </div>
 
-{/* Episodes + date */}
-<div className="mt-2.5 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-  {/* ✅ Episodes: ALWAYS 1-col on mobile */}
-  <div className="flex flex-col gap-1.5 sm:gap-2">
-    <Pill>{data.latestEpLabel}</Pill>
-    <Pill>{data.prevEpLabel}</Pill>
-  </div>
+        <div className="mt-2.5 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-1.5 sm:gap-2">
+            <Pill>{data.latestEpLabel}</Pill>
+            <Pill>{data.prevEpLabel}</Pill>
+          </div>
 
-  <div className="flex items-center justify-between sm:block sm:text-right text-[11px] sm:text-xs">
-    <div className="text-white/70">Last update</div>
-    <div className="font-bold tabular-nums">{data.lastUpdate}</div>
-  </div>
-</div>
+          <div className="flex items-center justify-between sm:block sm:text-right text-[11px] sm:text-xs">
+            <div className="text-white/70">Last update</div>
+            <div className="font-bold tabular-nums">{data.lastUpdate}</div>
+          </div>
+        </div>
 
-
-        {/* Bottom meta (smaller) */}
         <div className="mt-2 text-[10.5px] sm:text-[11px] text-white/70">
           Last Episode: <span className="font-semibold">#{data.latestEpNo}</span>
         </div>
       </div>
 
-      {/* Hover outline */}
       <div className="pointer-events-none absolute inset-0 ring-0 group-hover:ring-2 group-hover:ring-white/15 transition" />
     </Link>
   );
